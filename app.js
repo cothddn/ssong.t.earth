@@ -29,7 +29,7 @@ let allExtent;           // overall data extent
 init();
 
 async function init() {
-  const data = await d3.json("data.json");
+  const data = await d3.json("constellation_lines_iau.json");
   rawRows = normalizeToRows(data);
   schemas = Array.from(new Set(rawRows.map(d => String(d.schema))));
   schemas.sort((a,b)=>a.localeCompare(b,'en'));
