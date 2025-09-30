@@ -11,10 +11,8 @@ let currentLines = [];
 let scale = 1.0;
 let offsetX = 0;
 let offsetY = 0;
-let isDragging = false;
-let lastMouse = null;
 
-// CSV 파서: 다양한 포맷 대응
+// CSV 파서
 function parseCSV(text) {
   const lines = text.trim().split(/\r?\n/);
   const headers = lines[0].split(",");
@@ -26,7 +24,7 @@ function parseCSV(text) {
   const bvIdx = headers.findIndex(h => h.toUpperCase().includes("B-V"));
 
   if (hipIdx === -1 || raIdx === -1 || decIdx === -1) {
-    alert("필수 CSV 헤더(HIP, RA, DEC)를 찾을 수 없습니다.\nHeaders: " + headers.join(", "));
+    alert("필수 CSV 헤더(HIP, RA, DEC)를 찾을 수 없습니다.");
     return {};
   }
 
@@ -47,7 +45,7 @@ function parseCSV(text) {
   return data;
 }
 
-// 중심 기준 canvas 좌표 계산 + 화면 offset 적용
+// 중심 기준 Canvas 좌표
 function skyToCanvasCentered({ ra, dec }, centerRA, centerDec) {
   let dx = ra - centerRA;
   if (dx > 180) dx -= 360;
@@ -62,7 +60,7 @@ function skyToCanvasCentered({ ra, dec }, centerRA, centerDec) {
   return { x, y };
 }
 
-// RA 평균 (wrap-around 보정 포함)
+// RA 평균 (360 wrap-around 보정)
 function averageRA(ras) {
   let x = 0, y = 0;
   for (const ra of ras) {
@@ -118,14 +116,16 @@ function drawConstellation(lines, coordsMap) {
   }
 }
 
-// 별자리 선택 시 처리
+// 별자리 선택 시
 function onSelectChange() {
+  offsetX = 0;
+  offsetY = 0;
+
   const name = select.value;
   const lines = constellationData[name];
   currentLines = lines;
 
-  const raList = [];
-  const decList = [];
+  const raList = [], decList = [];
 
   for (const segment of lines) {
     for (const hip of segment) {
@@ -156,7 +156,7 @@ function onSelectChange() {
   drawConstellation(lines, coordsMap);
 }
 
-// 마우스 오버: 툴팁 표시
+// 마우스 오버 툴팁
 canvas.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
   const mouseX = e.clientX - rect.left;
@@ -195,7 +195,7 @@ canvas.addEventListener("mousemove", (e) => {
   }
 });
 
-// 확대/축소
+// 커서 기준 확대/축소
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
 
@@ -203,14 +203,12 @@ canvas.addEventListener("wheel", (e) => {
   const mouseX = e.clientX - rect.left;
   const mouseY = e.clientY - rect.top;
 
-  // 확대 비율 계산
   const zoomIntensity = 0.1;
   const delta = e.deltaY < 0 ? 1 + zoomIntensity : 1 - zoomIntensity;
   const newScale = Math.max(0.2, Math.min(scale * delta, 5.0));
 
-  if (newScale === scale) return; // 변경 없으면 중단
+  if (newScale === scale) return;
 
-  // 중심 별자리 기준 좌표 계산
   const name = select.value;
   const lines = constellationData[name];
 
@@ -228,19 +226,15 @@ canvas.addEventListener("wheel", (e) => {
   const centerRA = averageRA(raList);
   const centerDec = decList.reduce((a, b) => a + b, 0) / decList.length;
 
-  // 🔁 마우스 위치 기준 RA/Dec 계산
   const baseScale = canvas.height / 180;
-  const dxLogical = (mouseX - canvas.width / 2 - offsetX) / (baseScale * scale);
-  const dyLogical = (canvas.height / 2 - mouseY - offsetY) / (baseScale * scale);
+  const dx = (mouseX - canvas.width / 2 - offsetX) / (baseScale * scale);
+  const dy = (canvas.height / 2 - mouseY - offsetY) / (baseScale * scale);
 
-  // scale 업데이트
   scale = newScale;
 
-  // 새 offset 재계산 → 커서 위치 논리좌표 고정
-  offsetX = mouseX - canvas.width / 2 - dxLogical * baseScale * scale;
-  offsetY = mouseY - canvas.height / 2 + dyLogical * baseScale * scale;
+  offsetX = mouseX - canvas.width / 2 - dx * baseScale * scale;
+  offsetY = mouseY - canvas.height / 2 + dy * baseScale * scale;
 
-  // 다시 그리기
   const coordsMap = {};
   for (const segment of lines) {
     for (const hip of segment) {
@@ -254,49 +248,6 @@ canvas.addEventListener("wheel", (e) => {
   currentCoordsMap = coordsMap;
   drawConstellation(lines, coordsMap);
 });
-
-// 드래그 이동
-let dragDx = 0;
-let dragDy = 0;
-
-canvas.addEventListener("mousedown", (e) => {
-  isDragging = true;
-  lastMouse = { x: e.clientX, y: e.clientY };
-});
-
-canvas.addEventListener("mouseup", () => {
-  isDragging = false;
-  dragDx = 0;
-  dragDy = 0;
-});
-
-canvas.addEventListener("mouseleave", () => {
-  isDragging = false;
-  dragDx = 0;
-  dragDy = 0;
-});
-
-canvas.addEventListener("mousemove", (e) => {
-  if (!isDragging) return;
-
-  dragDx = e.clientX - lastMouse.x;
-  dragDy = e.clientY - lastMouse.y;
-  lastMouse = { x: e.clientX, y: e.clientY };
-});
-
-function animate() {
-  if (dragDx !== 0 || dragDy !== 0) {
-    offsetX += dragDx;
-    offsetY += dragDy;
-    drawConstellation(currentLines, currentCoordsMap);
-    dragDx = 0;
-    dragDy = 0;
-  }
-
-  requestAnimationFrame(animate);
-}
-
-animate(); // 초기 실행
 
 // 데이터 로드
 async function loadData() {
