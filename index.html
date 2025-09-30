@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Constellation Viewer</title>
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    #tooltip {
+      position: absolute;
+      display: none;
+      background: #000000cc;
+      color: white;
+      padding: 6px 8px;
+      font-size: 12px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
   <h1>🌌 별자리 시각화</h1>
@@ -15,6 +27,7 @@
   </div>
 
   <canvas id="skyCanvas" width="800" height="600"></canvas>
+  <div id="tooltip"></div>
 
   <script src="script.js"></script>
 </body>
