@@ -134,8 +134,30 @@ function onSelectChange() {
         raList.push(star.ra);
         decList.push(star.dec);
       }
+    }updateStarTable(lines);
+  }
+function updateStarTable(lines) {
+  const tbody = document.querySelector("#starTable tbody");
+  tbody.innerHTML = "";
+
+  const hips = new Set();
+  for (const segment of lines) {
+    for (const hip of segment) {
+      if (hips.has(hip)) continue;
+      hips.add(hip);
+      const star = starCoords[hip];
+      if (!star) continue;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${hip}</td>
+        <td>${star.vmag ?? "N/A"}</td>
+        <td>${star.bv ?? "N/A"}</td>
+      `;
+      tbody.appendChild(tr);
     }
   }
+}
 
   if (raList.length === 0) return;
 
