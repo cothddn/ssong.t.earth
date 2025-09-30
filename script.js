@@ -9,22 +9,32 @@ let currentCoordsMap = {};
 let currentLines = [];
 
 function parseCSV(text) {
-  const lines = text.trim().split(",");
+  const lines = text.trim().split(/\r?\n/); // 윈도우/유닉스 줄바꿈 대응
   const headers = lines[0].split(",");
-  const hipIdx = headers.indexOf("HIP");
-  const raIdx = headers.indexOf("_RAJ2000");
-  const decIdx = headers.indexOf("_DEJ2000");
-  const vmagIdx = headers.indexOf("VMag");
-  const bvIdx = headers.findIndex(h => h.includes("B-V"));
+
+  // 유연한 필드 탐색
+  const hipIdx = headers.findIndex(h => h.trim().toUpperCase() === "HIP");
+  const raIdx = headers.findIndex(h => h.toUpperCase().includes("RA"));
+  const decIdx = headers.findIndex(h => h.toUpperCase().includes("DEC") || h.toUpperCase().includes("DE"));
+  const vmagIdx = headers.findIndex(h => h.toUpperCase().includes("VMAG"));
+  const bvIdx = headers.findIndex(h => h.toUpperCase().includes("B-V"));
+
+  // 필수 필드 확인
+  if (hipIdx === -1 || raIdx === -1 || decIdx === -1) {
+    alert("필수 CSV 헤더(HIP, RA, DEC)를 찾을 수 없습니다.\nHeaders: " + headers.join(", "));
+    return {};
+  }
 
   const data = {};
+
   for (let i = 1; i < lines.length; i++) {
     const row = lines[i].split(",");
+
     const hip = row[hipIdx]?.trim();
     const ra = parseFloat(row[raIdx]);
     const dec = parseFloat(row[decIdx]);
-    const vmag = parseFloat(row[vmagIdx]);
-    const bv = parseFloat(row[bvIdx]);
+    const vmag = vmagIdx !== -1 ? parseFloat(row[vmagIdx]) : null;
+    const bv = bvIdx !== -1 ? parseFloat(row[bvIdx]) : null;
 
     if (hip && !isNaN(ra) && !isNaN(dec)) {
       data[hip] = { ra, dec, vmag, bv };
@@ -33,6 +43,7 @@ function parseCSV(text) {
 
   return data;
 }
+
 
 function skyToCanvas({ ra, dec }) {
   const raOffset = 90;
