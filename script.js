@@ -9,12 +9,12 @@ let currentCoordsMap = {};
 let currentLines = [];
 
 function parseCSV(text) {
-  const lines = text.trim().split(",");
+  const lines = text.trim().split("/n");
   const headers = lines[0].split(",");
   const hipIdx = headers.indexOf("HIP");
-  const raIdx = headers.indexOf("RA(ICRS)");
-  const decIdx = headers.indexOf("DE(ICRS)");
-  const vmagIdx = headers.indexOf("Vmag");
+  const raIdx = headers.indexOf("_RAJ2000");
+  const decIdx = headers.indexOf("_DEJ2000");
+  const vmagIdx = headers.indexOf("VMag");
   const bvIdx = headers.findIndex(h => h.includes("B-V"));
 
   const data = {};
