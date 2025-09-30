@@ -237,21 +237,47 @@ canvas.addEventListener("wheel", (e) => {
 
 
 // 드래그 이동
+let dragDx = 0;
+let dragDy = 0;
+
 canvas.addEventListener("mousedown", (e) => {
   isDragging = true;
   lastMouse = { x: e.clientX, y: e.clientY };
 });
-canvas.addEventListener("mouseup", () => isDragging = false);
-canvas.addEventListener("mouseleave", () => isDragging = false);
+
+canvas.addEventListener("mouseup", () => {
+  isDragging = false;
+  dragDx = 0;
+  dragDy = 0;
+});
+
+canvas.addEventListener("mouseleave", () => {
+  isDragging = false;
+  dragDx = 0;
+  dragDy = 0;
+});
+
 canvas.addEventListener("mousemove", (e) => {
   if (!isDragging) return;
-  const dx = e.clientX - lastMouse.x;
-  const dy = e.clientY - lastMouse.y;
+
+  dragDx = e.clientX - lastMouse.x;
+  dragDy = e.clientY - lastMouse.y;
   lastMouse = { x: e.clientX, y: e.clientY };
-  offsetX += dx;
-  offsetY += dy;
-  drawConstellation(currentLines, currentCoordsMap);
 });
+
+function animate() {
+  if (dragDx !== 0 || dragDy !== 0) {
+    offsetX += dragDx;
+    offsetY += dragDy;
+    drawConstellation(currentLines, currentCoordsMap);
+    dragDx = 0;
+    dragDy = 0;
+  }
+
+  requestAnimationFrame(animate);
+}
+
+animate(); // 초기 실행
 
 // 데이터 로드
 async function loadData() {
