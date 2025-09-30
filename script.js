@@ -194,6 +194,55 @@ canvas.addEventListener("mousemove", (e) => {
     tooltip.style.display = "none";
   }
 });
+canvas.addEventListener("touchstart", handleTouch);
+canvas.addEventListener("touchmove", handleTouch);
+canvas.addEventListener("touchend", () => {
+  tooltip.style.display = "none";
+});
+
+function handleTouch(e) {
+  if (!e.touches || e.touches.length === 0) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  const touchX = touch.clientX - rect.left;
+  const touchY = touch.clientY - rect.top;
+
+  let found = null;
+
+  for (const segment of currentLines) {
+    for (const hip of segment) {
+      const coord = currentCoordsMap[hip];
+      if (!coord) continue;
+
+      const dx = coord.x - touchX;
+      const dy = coord.y - touchY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 10) {
+        found = { hip, ...starCoords[hip], screen: coord };
+        break;
+      }
+    }
+    if (found) break;
+  }
+
+  if (found) {
+    tooltip.style.display = "block";
+    tooltip.style.left = `${touch.pageX + 10}px`;
+    tooltip.style.top = `${touch.pageY + 10}px`;
+    tooltip.innerHTML = `
+      <b>HIP:</b> ${found.hip}<br>
+      <b>Vmag:</b> ${found.vmag ?? "N/A"}<br>
+      <b>B−V:</b> ${found.bv ?? "N/A"}
+    `;
+  } else {
+    tooltip.style.display = "none";
+  }
+
+  e.preventDefault(); // 스크롤 방지
+}
+
 
 // 커서 기준 확대/축소
 canvas.addEventListener("wheel", (e) => {
