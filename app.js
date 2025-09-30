@@ -80,8 +80,8 @@ select.addEventListener("change", () => {
 // 데이터 불러오기
 async function loadData() {
   const [jsonRes, csvRes] = await Promise.all([
-    fetch("data/constellation_lines_iau.json"),
-    fetch("data/vizier_data.csv")
+    fetch("constellation_lines_iau.json"),
+    fetch("vizier_data.csv")
   ]);
   constellationData = await jsonRes.json();
   const csvText = await csvRes.text();
