@@ -8,19 +8,29 @@ let starCoords = {};
 // ✅ CSV 파서 (쉼표 구분)
 function parseCSV(text) {
   const lines = text.trim().split("\n");
-  const headers = lines[0].split(",");
-  const hipIdx = headers.indexOf("HIP");
-  const raIdx = headers.indexOf("RA(ICRS)");
-  const decIdx = headers.indexOf("DE(ICRS)");
+  
+  // 첫 번째 주석줄 제거
+  let headerLineIndex = 0;
+  while (lines[headerLineIndex].startsWith("#") || lines[headerLineIndex].trim() === "") {
+    headerLineIndex++;
+  }
+
+  const headers = lines[headerLineIndex].replace(/"/g,"").split(/[,; \t]+/).map(h => h.trim());
+  console.log("📄 CSV Headers:", headers);
+
+  const hipIdx = headers.findIndex(h => h.toUpperCase().includes("HIP"));
+  const raIdx = headers.findIndex(h => h.toUpperCase().includes("RA"));
+  const decIdx = headers.findIndex(h => h.toUpperCase().includes("DE"));
 
   if (hipIdx === -1 || raIdx === -1 || decIdx === -1) {
-    alert("CSV 헤더를 찾을 수 없습니다.");
+    alert("CSV 헤더를 찾을 수 없습니다.\nHeaders: "+headers.join(","));
     return {};
   }
 
   const data = {};
-  for (let i = 1; i < lines.length; i++) {
-    const row = lines[i].split(",");
+  for (let i = headerLineIndex + 1; i < lines.length; i++) {
+    if (lines[i].startsWith("#") || lines[i].trim() === "") continue;
+    const row = lines[i].replace(/"/g,"").split(/[,; \t]+/);
     const hip = row[hipIdx]?.trim();
     const ra = parseFloat(row[raIdx]);
     const dec = parseFloat(row[decIdx]);
@@ -32,7 +42,6 @@ function parseCSV(text) {
   console.log("⭐ 파싱된 별 개수:", Object.keys(data).length);
   return data;
 }
-
 // ✅ 천구 좌표 → 캔버스 좌표
 function skyToCanvas({ ra, dec }) {
   const x = (1 - ra / 360) * canvas.width;
