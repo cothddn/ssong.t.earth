@@ -1,65 +1,21 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>별자리 선택 → HIP 시퀀스 불러오기</title>
-  <style>
-    :root { --bg:#0b1020; --card:#101735; --fg:#e6f0ff; --muted:#9fb3c8; --line:#21305a; --warn:#ffb86b; }
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Apple SD Gothic Neo,sans-serif}
-    header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    h1{margin:0;font-size:18px}
-    .wrap{max-width:1100px;margin:0 auto;padding:18px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
-    label,select,input{font-size:14px}
-    select,input{background:#0c1330;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
-    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    .meta{color:var(--muted);font-size:13px}
-    .list{margin-top:12px;display:grid;gap:8px}
-    .seq{padding:10px;border:1px dashed #2a3b73;border-radius:10px;overflow:auto}
-    code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:13px}
-    .small{font-size:12px;color:var(--muted)}
-    .hidden{display:none}
-    .alert{background:#2a1f12;border:1px solid #5a3f1a;color:var(--warn);padding:10px;border-radius:10px;margin:12px 0}
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Constellation Viewer</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <header>
-    <h1>별자리 선택 → HIP 시퀀스 불러오기</h1>
-  </header>
+  <h1>🌌 별자리 시각화</h1>
 
-  <div class="wrap">
-    <div id="alert" class="alert hidden"></div>
-
-    <div class="card">
-      <div class="row" style="margin-bottom:10px">
-        <label for="q">빠른 검색:</label>
-        <input id="q" placeholder="별자리 이름 일부(예: Ori, Andromeda)" />
-        <label for="sel">별자리 선택:</label>
-        <select id="sel"></select>
-        <span id="count" class="meta"></span>
-      </div>
-
-      <div class="row" style="margin-bottom:8px">
-        <input type="file" id="file" accept=".json,application/json">
-        <span class="small">불러오기에 실패하면 여기서 로컬 JSON을 선택하세요.</span>
-      </div>
-
-      <div id="summary" class="meta"></div>
-      <div id="list" class="list"></div>
-
-      <details style="margin-top:10px">
-        <summary>고급: 고유 HIP 목록 보기</summary>
-        <div class="seq"><code id="unique"></code></div>
-        <div class="small">※ 다음 단계에서 TSV 좌표 매칭 시 이 고유 HIP 집합을 사용합니다.</div>
-      </details>
-    </div>
-
-    <p class="small" style="margin-top:10px">
-      기본 데이터 파일: <code>constellation_lines_iau.json</code> (repo 루트에 두세요)
-    </p>
+  <div id="controls">
+    <label for="constellationSelect">별자리를 선택하세요:</label>
+    <select id="constellationSelect"></select>
   </div>
 
-  <script src="app.js"></script>
+  <canvas id="skyCanvas" width="800" height="600"></canvas>
+
+  <script src="script.js"></script>
 </body>
 </html>
