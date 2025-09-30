@@ -8,7 +8,13 @@ let starCoords = {};
 let currentCoordsMap = {};
 let currentLines = [];
 
-// 📌 유연한 CSV 파서
+let scale = 1.0;
+let offsetX = 0;
+let offsetY = 0;
+let isDragging = false;
+let lastMouse = null;
+
+// CSV 파서: 다양한 포맷 대응
 function parseCSV(text) {
   const lines = text.trim().split(/\r?\n/);
   const headers = lines[0].split(",");
@@ -41,22 +47,22 @@ function parseCSV(text) {
   return data;
 }
 
-// 📌 중심 기준으로 변환된 RA/DEC → canvas x/y
+// 중심 기준 canvas 좌표 계산 + 화면 offset 적용
 function skyToCanvasCentered({ ra, dec }, centerRA, centerDec) {
   let dx = ra - centerRA;
   if (dx > 180) dx -= 360;
   if (dx < -180) dx += 360;
 
   const dy = dec - centerDec;
-  const scale = canvas.height / 180; // 1도 = scale px
+  const baseScale = canvas.height / 180;
 
-  const x = canvas.width / 2 + dx * scale;
-  const y = canvas.height / 2 - dy * scale;
+  const x = canvas.width / 2 + dx * baseScale * scale + offsetX;
+  const y = canvas.height / 2 - dy * baseScale * scale + offsetY;
 
   return { x, y };
 }
 
-// 📌 RA 평균 (wrap-around 보정 포함)
+// RA 평균 (wrap-around 보정 포함)
 function averageRA(ras) {
   let x = 0, y = 0;
   for (const ra of ras) {
@@ -68,7 +74,7 @@ function averageRA(ras) {
   return (avgAngle * 180 / Math.PI + 360) % 360;
 }
 
-// 📌 별자리 시각화
+// 별자리 그리기
 function drawConstellation(lines, coordsMap) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.strokeStyle = "#44f";
@@ -101,7 +107,6 @@ function drawConstellation(lines, coordsMap) {
     ctx.stroke();
   }
 
-  // 별 점 찍기
   for (const segment of lines) {
     for (const hip of segment) {
       const coord = coordsMap[hip];
@@ -113,7 +118,7 @@ function drawConstellation(lines, coordsMap) {
   }
 }
 
-// 📌 별자리 선택 시
+// 별자리 선택 시 처리
 function onSelectChange() {
   const name = select.value;
   const lines = constellationData[name];
@@ -151,7 +156,7 @@ function onSelectChange() {
   drawConstellation(lines, coordsMap);
 }
 
-// 📌 마우스 호버 → 툴팁 표시
+// 마우스 오버: 툴팁 표시
 canvas.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
   const mouseX = e.clientX - rect.left;
@@ -190,7 +195,34 @@ canvas.addEventListener("mousemove", (e) => {
   }
 });
 
-// 📌 초기 로드
+// 확대/축소
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const zoomIntensity = 0.1;
+  const delta = e.deltaY < 0 ? 1 + zoomIntensity : 1 - zoomIntensity;
+  scale *= delta;
+  scale = Math.max(0.2, Math.min(scale, 5.0));
+  drawConstellation(currentLines, currentCoordsMap);
+});
+
+// 드래그 이동
+canvas.addEventListener("mousedown", (e) => {
+  isDragging = true;
+  lastMouse = { x: e.clientX, y: e.clientY };
+});
+canvas.addEventListener("mouseup", () => isDragging = false);
+canvas.addEventListener("mouseleave", () => isDragging = false);
+canvas.addEventListener("mousemove", (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastMouse.x;
+  const dy = e.clientY - lastMouse.y;
+  lastMouse = { x: e.clientX, y: e.clientY };
+  offsetX += dx;
+  offsetY += dy;
+  drawConstellation(currentLines, currentCoordsMap);
+});
+
+// 데이터 로드
 async function loadData() {
   const [jsonRes, csvRes] = await Promise.all([
     fetch("constellation_lines_iau.json"),
