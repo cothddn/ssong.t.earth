@@ -9,7 +9,7 @@ let currentCoordsMap = {};
 let currentLines = [];
 
 function parseCSV(text) {
-  const lines = text.trim().split("\n");
+  const lines = text.trim().split(",");
   const headers = lines[0].split(",");
   const hipIdx = headers.indexOf("HIP");
   const raIdx = headers.indexOf("_RAJ2000");
