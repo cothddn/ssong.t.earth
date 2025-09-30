@@ -5,7 +5,7 @@ const select = document.getElementById("constellationSelect");
 let constellationData = {};
 let starCoords = {};
 
-// CSV 파싱 함수
+// ✅ CSV 파서 (쉼표 구분)
 function parseCSV(text) {
   const lines = text.trim().split("\n");
   const headers = lines[0].split(",");
@@ -13,28 +13,34 @@ function parseCSV(text) {
   const raIdx = headers.indexOf("RA(ICRS)");
   const decIdx = headers.indexOf("DE(ICRS)");
 
+  if (hipIdx === -1 || raIdx === -1 || decIdx === -1) {
+    alert("CSV 헤더를 찾을 수 없습니다.");
+    return {};
+  }
+
   const data = {};
   for (let i = 1; i < lines.length; i++) {
     const row = lines[i].split(",");
-    const hip = row[hipIdx];
+    const hip = row[hipIdx]?.trim();
     const ra = parseFloat(row[raIdx]);
     const dec = parseFloat(row[decIdx]);
     if (hip && !isNaN(ra) && !isNaN(dec)) {
       data[hip] = { ra, dec };
     }
   }
+
+  console.log("⭐ 파싱된 별 개수:", Object.keys(data).length);
   return data;
 }
 
-// 좌표를 캔버스로 매핑
+// ✅ 천구 좌표 → 캔버스 좌표
 function skyToCanvas({ ra, dec }) {
-  // 단순히 정규화해서 시각화
-  const x = (1 - ra / 360) * canvas.width; // 오른쪽이 RA=0
+  const x = (1 - ra / 360) * canvas.width;
   const y = (1 - (dec + 90) / 180) * canvas.height;
   return { x, y };
 }
 
-// 별자리 그리기
+// ✅ 별자리 시각화
 function drawConstellation(lines) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.strokeStyle = "#44f";
@@ -48,16 +54,13 @@ function drawConstellation(lines) {
       const coords = starCoords[hip];
       if (!coords) continue;
       const { x, y } = skyToCanvas(coords);
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
     ctx.stroke();
   }
 
-  // 별 점 찍기
+  // 별점 찍기
   for (const segment of lines) {
     for (const hip of segment) {
       const coords = starCoords[hip];
@@ -70,24 +73,25 @@ function drawConstellation(lines) {
   }
 }
 
-// 별자리 선택 시
+// ✅ 별자리 선택 이벤트
 select.addEventListener("change", () => {
   const name = select.value;
   const lines = constellationData[name];
   drawConstellation(lines);
 });
 
-// 데이터 불러오기
+// ✅ 파일 로드 & 초기화
 async function loadData() {
   const [jsonRes, csvRes] = await Promise.all([
     fetch("constellation_lines_iau.json"),
     fetch("vizier_data.csv")
   ]);
+
   constellationData = await jsonRes.json();
   const csvText = await csvRes.text();
   starCoords = parseCSV(csvText);
 
-  // 드롭다운 채우기
+  // 셀렉트 박스 채우기
   for (const name of Object.keys(constellationData).sort()) {
     const opt = document.createElement("option");
     opt.value = name;
@@ -95,7 +99,7 @@ async function loadData() {
     select.appendChild(opt);
   }
 
-  // 기본 표시
+  // 기본 선택 표시
   select.value = "Orion";
   drawConstellation(constellationData["Orion"]);
 }
