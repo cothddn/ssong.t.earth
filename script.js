@@ -202,8 +202,39 @@ canvas.addEventListener("wheel", (e) => {
   const delta = e.deltaY < 0 ? 1 + zoomIntensity : 1 - zoomIntensity;
   scale *= delta;
   scale = Math.max(0.2, Math.min(scale, 5.0));
-  drawConstellation(currentLines, currentCoordsMap);
+
+  // 좌표 맵을 새로 계산
+  const name = select.value;
+  const lines = constellationData[name];
+
+  const raList = [], decList = [];
+  for (const segment of lines) {
+    for (const hip of segment) {
+      const star = starCoords[hip];
+      if (star) {
+        raList.push(star.ra);
+        decList.push(star.dec);
+      }
+    }
+  }
+
+  const centerRA = averageRA(raList);
+  const centerDec = decList.reduce((a, b) => a + b, 0) / decList.length;
+
+  const coordsMap = {};
+  for (const segment of lines) {
+    for (const hip of segment) {
+      const star = starCoords[hip];
+      if (star && !coordsMap[hip]) {
+        coordsMap[hip] = skyToCanvasCentered(star, centerRA, centerDec);
+      }
+    }
+  }
+
+  currentCoordsMap = coordsMap;
+  drawConstellation(lines, coordsMap);
 });
+
 
 // 드래그 이동
 canvas.addEventListener("mousedown", (e) => {
