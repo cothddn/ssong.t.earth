@@ -8,28 +8,25 @@ let starCoords = {};
 let currentCoordsMap = {};
 let currentLines = [];
 
+// 📌 유연한 CSV 파서
 function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/); // 윈도우/유닉스 줄바꿈 대응
+  const lines = text.trim().split(/\r?\n/);
   const headers = lines[0].split(",");
 
-  // 유연한 필드 탐색
   const hipIdx = headers.findIndex(h => h.trim().toUpperCase() === "HIP");
   const raIdx = headers.findIndex(h => h.toUpperCase().includes("RA"));
   const decIdx = headers.findIndex(h => h.toUpperCase().includes("DEC") || h.toUpperCase().includes("DE"));
   const vmagIdx = headers.findIndex(h => h.toUpperCase().includes("VMAG"));
   const bvIdx = headers.findIndex(h => h.toUpperCase().includes("B-V"));
 
-  // 필수 필드 확인
   if (hipIdx === -1 || raIdx === -1 || decIdx === -1) {
     alert("필수 CSV 헤더(HIP, RA, DEC)를 찾을 수 없습니다.\nHeaders: " + headers.join(", "));
     return {};
   }
 
   const data = {};
-
   for (let i = 1; i < lines.length; i++) {
     const row = lines[i].split(",");
-
     const hip = row[hipIdx]?.trim();
     const ra = parseFloat(row[raIdx]);
     const dec = parseFloat(row[decIdx]);
@@ -44,15 +41,34 @@ function parseCSV(text) {
   return data;
 }
 
+// 📌 중심 기준으로 변환된 RA/DEC → canvas x/y
+function skyToCanvasCentered({ ra, dec }, centerRA, centerDec) {
+  let dx = ra - centerRA;
+  if (dx > 180) dx -= 360;
+  if (dx < -180) dx += 360;
 
-function skyToCanvas({ ra, dec }) {
-  const raOffset = 90;
-  const raShifted = (ra - raOffset + 360) % 360;
-  const x = (raShifted / 360) * canvas.width;
-  const y = (1 - (dec + 90) / 180) * canvas.height;
+  const dy = dec - centerDec;
+  const scale = canvas.height / 180; // 1도 = scale px
+
+  const x = canvas.width / 2 + dx * scale;
+  const y = canvas.height / 2 - dy * scale;
+
   return { x, y };
 }
 
+// 📌 RA 평균 (wrap-around 보정 포함)
+function averageRA(ras) {
+  let x = 0, y = 0;
+  for (const ra of ras) {
+    const rad = (ra / 180) * Math.PI;
+    x += Math.cos(rad);
+    y += Math.sin(rad);
+  }
+  const avgAngle = Math.atan2(y, x);
+  return (avgAngle * 180 / Math.PI + 360) % 360;
+}
+
+// 📌 별자리 시각화
 function drawConstellation(lines, coordsMap) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.strokeStyle = "#44f";
@@ -61,39 +77,72 @@ function drawConstellation(lines, coordsMap) {
 
   for (const segment of lines) {
     ctx.beginPath();
+    let prev = null;
+
     for (let i = 0; i < segment.length; i++) {
       const hip = segment[i];
-      const coords = coordsMap[hip];
-      if (!coords) continue;
-      const { x, y } = coords;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      const coord = coordsMap[hip];
+      if (!coord) continue;
+
+      if (!prev) {
+        ctx.moveTo(coord.x, coord.y);
+      } else {
+        const dx = Math.abs(prev.x - coord.x);
+        if (dx < canvas.width / 2) {
+          ctx.lineTo(coord.x, coord.y);
+        } else {
+          ctx.moveTo(coord.x, coord.y);
+        }
+      }
+
+      prev = coord;
     }
+
     ctx.stroke();
   }
 
+  // 별 점 찍기
   for (const segment of lines) {
     for (const hip of segment) {
-      const coords = coordsMap[hip];
-      if (!coords) continue;
-      const { x, y } = coords;
+      const coord = coordsMap[hip];
+      if (!coord) continue;
       ctx.beginPath();
-      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.arc(coord.x, coord.y, 2, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 }
 
+// 📌 별자리 선택 시
 function onSelectChange() {
   const name = select.value;
   const lines = constellationData[name];
   currentLines = lines;
 
+  const raList = [];
+  const decList = [];
+
+  for (const segment of lines) {
+    for (const hip of segment) {
+      const star = starCoords[hip];
+      if (star) {
+        raList.push(star.ra);
+        decList.push(star.dec);
+      }
+    }
+  }
+
+  if (raList.length === 0) return;
+
+  const centerRA = averageRA(raList);
+  const centerDec = decList.reduce((a, b) => a + b, 0) / decList.length;
+
   const coordsMap = {};
   for (const segment of lines) {
     for (const hip of segment) {
-      if (!coordsMap[hip] && starCoords[hip]) {
-        coordsMap[hip] = skyToCanvas(starCoords[hip]);
+      const star = starCoords[hip];
+      if (star && !coordsMap[hip]) {
+        coordsMap[hip] = skyToCanvasCentered(star, centerRA, centerDec);
       }
     }
   }
@@ -102,6 +151,7 @@ function onSelectChange() {
   drawConstellation(lines, coordsMap);
 }
 
+// 📌 마우스 호버 → 툴팁 표시
 canvas.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
   const mouseX = e.clientX - rect.left;
@@ -140,6 +190,7 @@ canvas.addEventListener("mousemove", (e) => {
   }
 });
 
+// 📌 초기 로드
 async function loadData() {
   const [jsonRes, csvRes] = await Promise.all([
     fetch("constellation_lines_iau.json"),
