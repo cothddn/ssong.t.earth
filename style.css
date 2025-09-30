@@ -1,0 +1,25 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #0b0c10;
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+}
+
+h1 {
+  margin-bottom: 10px;
+}
+
+#controls {
+  margin-bottom: 20px;
+}
+
+#constellationSelect {
+  padding: 6px 10px;
+  font-size: 16px;
+}
+
+#skyCanvas {
+  border: 1px solid #ccc;
+  background-color: #000;
+}
