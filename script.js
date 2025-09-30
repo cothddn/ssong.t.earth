@@ -298,6 +298,90 @@ canvas.addEventListener("wheel", (e) => {
   drawConstellation(lines, coordsMap);
 });
 
+
+let pinchStartDist = null;
+let pinchStartScale = 1;
+let pinchCenter = null;
+
+canvas.addEventListener("touchstart", (e) => {
+  if (e.touches.length === 2) {
+    pinchStartDist = getTouchDistance(e.touches);
+    pinchStartScale = scale;
+    pinchCenter = getTouchCenter(e.touches);
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchmove", (e) => {
+  if (e.touches.length === 2 && pinchStartDist && pinchCenter) {
+    const newDist = getTouchDistance(e.touches);
+    const ratio = newDist / pinchStartDist;
+    const newScale = Math.max(0.2, Math.min(pinchStartScale * ratio, 5.0));
+
+    const name = select.value;
+    const lines = constellationData[name];
+
+    const raList = [], decList = [];
+    for (const segment of lines) {
+      for (const hip of segment) {
+        const star = starCoords[hip];
+        if (star) {
+          raList.push(star.ra);
+          decList.push(star.dec);
+        }
+      }
+    }
+
+    const centerRA = averageRA(raList);
+    const centerDec = decList.reduce((a, b) => a + b, 0) / decList.length;
+
+    const baseScale = canvas.height / 180;
+
+    const dx = (pinchCenter.x - canvas.width / 2 - offsetX) / (baseScale * scale);
+    const dy = (canvas.height / 2 - pinchCenter.y - offsetY) / (baseScale * scale);
+
+    scale = newScale;
+
+    offsetX = pinchCenter.x - canvas.width / 2 - dx * baseScale * scale;
+    offsetY = canvas.height / 2 - pinchCenter.y + dy * baseScale * scale;
+
+    // 재계산 및 렌더링
+    const coordsMap = {};
+    for (const segment of lines) {
+      for (const hip of segment) {
+        const star = starCoords[hip];
+        if (star && !coordsMap[hip]) {
+          coordsMap[hip] = skyToCanvasCentered(star, centerRA, centerDec);
+        }
+      }
+    }
+
+    currentCoordsMap = coordsMap;
+    drawConstellation(lines, coordsMap);
+
+    e.preventDefault();
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchend", () => {
+  pinchStartDist = null;
+  pinchCenter = null;
+});
+
+// 거리 계산 함수
+function getTouchDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// 두 손가락 중앙 좌표
+function getTouchCenter(touches) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
+  const y = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
+  return { x, y };
+}
+
 // 데이터 로드
 async function loadData() {
   const [jsonRes, csvRes] = await Promise.all([
