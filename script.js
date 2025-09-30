@@ -157,11 +157,7 @@ function onSelectChange() {
 }
 
 // 마우스 오버 툴팁
-canvas.addEventListener("mousemove", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const mouseX = e.clientX - rect.left;
-  const mouseY = e.clientY - rect.top;
-
+function showTooltipAt(x, y, pageX, pageY) {
   let found = null;
 
   for (const segment of currentLines) {
@@ -169,11 +165,11 @@ canvas.addEventListener("mousemove", (e) => {
       const coord = currentCoordsMap[hip];
       if (!coord) continue;
 
-      const dx = coord.x - mouseX;
-      const dy = coord.y - mouseY;
+      const dx = coord.x - x;
+      const dy = coord.y - y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist < 5) {
+      if (dist < 8) {
         found = { hip, ...starCoords[hip], screen: coord };
         break;
       }
@@ -183,8 +179,8 @@ canvas.addEventListener("mousemove", (e) => {
 
   if (found) {
     tooltip.style.display = "block";
-    tooltip.style.left = `${e.pageX + 10}px`;
-    tooltip.style.top = `${e.pageY + 10}px`;
+    tooltip.style.left = `${pageX + 10}px`;
+    tooltip.style.top = `${pageY + 10}px`;
     tooltip.innerHTML = `
       <b>HIP:</b> ${found.hip}<br>
       <b>Vmag:</b> ${found.vmag ?? "N/A"}<br>
@@ -193,56 +189,24 @@ canvas.addEventListener("mousemove", (e) => {
   } else {
     tooltip.style.display = "none";
   }
-});
-canvas.addEventListener("touchstart", handleTouch);
-canvas.addEventListener("touchmove", handleTouch);
-canvas.addEventListener("touchend", () => {
-  tooltip.style.display = "none";
-});
-
-function handleTouch(e) {
-  if (!e.touches || e.touches.length === 0) return;
-
-  const rect = canvas.getBoundingClientRect();
-  const touch = e.touches[0];
-  const touchX = touch.clientX - rect.left;
-  const touchY = touch.clientY - rect.top;
-
-  let found = null;
-
-  for (const segment of currentLines) {
-    for (const hip of segment) {
-      const coord = currentCoordsMap[hip];
-      if (!coord) continue;
-
-      const dx = coord.x - touchX;
-      const dy = coord.y - touchY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist < 10) {
-        found = { hip, ...starCoords[hip], screen: coord };
-        break;
-      }
-    }
-    if (found) break;
-  }
-
-  if (found) {
-    tooltip.style.display = "block";
-    tooltip.style.left = `${touch.pageX + 10}px`;
-    tooltip.style.top = `${touch.pageY + 10}px`;
-    tooltip.innerHTML = `
-      <b>HIP:</b> ${found.hip}<br>
-      <b>Vmag:</b> ${found.vmag ?? "N/A"}<br>
-      <b>B−V:</b> ${found.bv ?? "N/A"}
-    `;
-  } else {
-    tooltip.style.display = "none";
-  }
-
-  e.preventDefault(); // 스크롤 방지
 }
+canvas.addEventListener("touchend", (e) => {
+  if (!e.changedTouches || e.changedTouches.length === 0) return;
 
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.changedTouches[0];
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+
+  showTooltipAt(x, y, touch.pageX, touch.pageY);
+});
+canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  showTooltipAt(x, y, e.pageX, e.pageY);
+});
 
 // 커서 기준 확대/축소
 canvas.addEventListener("wheel", (e) => {
