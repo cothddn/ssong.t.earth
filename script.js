@@ -198,12 +198,19 @@ canvas.addEventListener("mousemove", (e) => {
 // 확대/축소
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
+
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+
+  // 확대 비율 계산
   const zoomIntensity = 0.1;
   const delta = e.deltaY < 0 ? 1 + zoomIntensity : 1 - zoomIntensity;
-  scale *= delta;
-  scale = Math.max(0.2, Math.min(scale, 5.0));
+  const newScale = Math.max(0.2, Math.min(scale * delta, 5.0));
 
-  // 좌표 맵을 새로 계산
+  if (newScale === scale) return; // 변경 없으면 중단
+
+  // 중심 별자리 기준 좌표 계산
   const name = select.value;
   const lines = constellationData[name];
 
@@ -221,6 +228,19 @@ canvas.addEventListener("wheel", (e) => {
   const centerRA = averageRA(raList);
   const centerDec = decList.reduce((a, b) => a + b, 0) / decList.length;
 
+  // 🔁 마우스 위치 기준 RA/Dec 계산
+  const baseScale = canvas.height / 180;
+  const dxLogical = (mouseX - canvas.width / 2 - offsetX) / (baseScale * scale);
+  const dyLogical = (canvas.height / 2 - mouseY - offsetY) / (baseScale * scale);
+
+  // scale 업데이트
+  scale = newScale;
+
+  // 새 offset 재계산 → 커서 위치 논리좌표 고정
+  offsetX = mouseX - canvas.width / 2 - dxLogical * baseScale * scale;
+  offsetY = mouseY - canvas.height / 2 + dyLogical * baseScale * scale;
+
+  // 다시 그리기
   const coordsMap = {};
   for (const segment of lines) {
     for (const hip of segment) {
@@ -234,7 +254,6 @@ canvas.addEventListener("wheel", (e) => {
   currentCoordsMap = coordsMap;
   drawConstellation(lines, coordsMap);
 });
-
 
 // 드래그 이동
 let dragDx = 0;
