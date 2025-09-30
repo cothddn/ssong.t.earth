@@ -198,8 +198,39 @@ canvas.addEventListener("touchend", (e) => {
   const x = touch.clientX - rect.left;
   const y = touch.clientY - rect.top;
 
-  showTooltipAt(x, y, touch.pageX, touch.pageY);
+  let found = null;
+
+  for (const segment of currentLines) {
+    for (const hip of segment) {
+      const coord = currentCoordsMap[hip];
+      if (!coord) continue;
+
+      const dx = coord.x - x;
+      const dy = coord.y - y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 10) {
+        found = { hip, ...starCoords[hip], screen: coord };
+        break;
+      }
+    }
+    if (found) break;
+  }
+
+  if (found) {
+    tooltip.style.display = "block";
+    tooltip.style.left = `${touch.pageX + 10}px`;
+    tooltip.style.top = `${touch.pageY + 10}px`;
+    tooltip.innerHTML = `
+      <b>HIP:</b> ${found.hip}<br>
+      <b>Vmag:</b> ${found.vmag ?? "N/A"}<br>
+      <b>B−V:</b> ${found.bv ?? "N/A"}
+    `;
+  } else {
+    tooltip.style.display = "none";
+  }
 });
+
 canvas.addEventListener("click", (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
