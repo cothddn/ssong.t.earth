@@ -7,7 +7,7 @@ let starCoords = {};
 
 // ✅ CSV 파서 (쉼표 구분)
 function parseCSV(text) {
-  const lines = text.trim().split("\n");
+  const lines = text.trim().split(",");
   
   // 첫 번째 주석줄 제거
   let headerLineIndex = 0;
